@@ -4,8 +4,7 @@
 #include <Arduino.h>
 
 // the value of the 'other' resistor
-#define SERIESRESISTOR 100000    
-
+#define SERIESRESISTOR 100000
 // resistance at 25 degrees C
 #define THERMISTORNOMINAL 100000      
 // temp. for nominal resistance (almost always 25 C)
@@ -38,10 +37,9 @@ double takeReading(int pin)
 
 double calculateTempCelsius(double reading)
 {
-  reading = (4095 / reading)  - 1;     // (1023/ADC - 1) 
+  reading = (4095.0 / reading) - 1;     // (1023/ADC - 1) 
   reading = SERIESRESISTOR / reading;  // 100K / (1023/ADC - 1)
-  double steinhart;
-  steinhart = reading / THERMISTORNOMINAL;     // (R/Ro)
+  double steinhart = reading / THERMISTORNOMINAL;     // (R/Ro)
   steinhart = log(steinhart);                  // ln(R/Ro)
   steinhart /= BCOEFFICIENT;                   // 1/B * ln(R/Ro)
   steinhart += 1.0 / (TEMPERATURENOMINAL + 273.15); // + (1/To)
