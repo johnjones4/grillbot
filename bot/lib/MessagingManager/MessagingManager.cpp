@@ -23,8 +23,7 @@ void MessagingManager::begin()
   pService = pServer->createService(serviceUuid);
   pCharacteristic = pService->createCharacteristic(
                                          characteristicUuid,
-                                         BLECharacteristic::PROPERTY_READ | 
-                                         BLECharacteristic::PROPERTY_NOTIFY
+                                         BLECharacteristic::PROPERTY_READ
                                        );
   pService->start();
   BLEAdvertising *pAdvertising = BLEDevice::getAdvertising();
@@ -55,9 +54,10 @@ void generateMessage(double temp1, double temp2, byte* buffer)
 void MessagingManager::reportTemperatures(double temp1, double temp2)
 {
   byte buffer[MESSAGE_LENGTH];
-  generateMessage(temp1, temp1, buffer);
+  generateMessage(temp1, temp2, buffer);
   pCharacteristic->setValue(buffer, MESSAGE_LENGTH);
-  pCharacteristic->notify(true);
+  char* pHex = BLEUtils::buildHexData(nullptr, buffer, MESSAGE_LENGTH);
+  Serial.printf("BLE Value: %s\n", pHex);
 }
 
 #endif
