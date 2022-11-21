@@ -9,11 +9,12 @@
 #define DOUBLE_LENGTH 8
 #define MESSAGE_LENGTH 16
 
-MessagingManager::MessagingManager(std::string _deviceName, std::string _serviceUuid, std::string _characteristicUuid)
+MessagingManager::MessagingManager(std::string _deviceName, std::string _serviceUuid, std::string _tempCharacteristicUuid, std::string _calibCharacteristicUuid)
 {
   deviceName = _deviceName;
   serviceUuid = _serviceUuid;
-  characteristicUuid = _characteristicUuid;
+  tempCharacteristicUuid = _tempCharacteristicUuid;
+  calibCharacteristicUuid = _calibCharacteristicUuid;
 }
 
 void MessagingManager::begin()
@@ -21,9 +22,13 @@ void MessagingManager::begin()
   BLEDevice::init(deviceName);
   pServer = BLEDevice::createServer();
   pService = pServer->createService(serviceUuid);
-  pCharacteristic = pService->createCharacteristic(
-                                         characteristicUuid,
+  tempCharacteristic = pService->createCharacteristic(
+                                         tempCharacteristicUuid,
                                          BLECharacteristic::PROPERTY_READ
+                                       );
+  calibCharacteristic = pService->createCharacteristic(
+                                         calibCharacteristicUuid,
+                                         BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_WRITE
                                        );
   pService->start();
   BLEAdvertising *pAdvertising = BLEDevice::getAdvertising();
@@ -55,9 +60,46 @@ void MessagingManager::reportTemperatures(double temp1, double temp2)
 {
   byte buffer[MESSAGE_LENGTH];
   generateMessage(temp1, temp2, buffer);
-  pCharacteristic->setValue(buffer, MESSAGE_LENGTH);
+  tempCharacteristic->setValue(buffer, MESSAGE_LENGTH);
   char* pHex = BLEUtils::buildHexData(nullptr, buffer, MESSAGE_LENGTH);
-  Serial.printf("BLE Value: %s\n", pHex);
+  Serial.printf("Temp Value: %s\n", pHex);
+}
+
+void MessagingManager::setCalibrations(double temp1, double temp2)
+{
+  byte buffer[MESSAGE_LENGTH];
+  generateMessage(temp1, temp2, buffer);
+  calibCharacteristic->setValue(buffer, MESSAGE_LENGTH);
+  char* pHex = BLEUtils::buildHexData(nullptr, buffer, MESSAGE_LENGTH);
+  Serial.printf("Calibration Value: %s\n", pHex);
+}
+
+calibration MessagingManager::getCalibrations()
+{
+  std::string data = calibCharacteristic->getValue();
+  byte buffer[MESSAGE_LENGTH];
+  memcpy(buffer, data.c_str(), MESSAGE_LENGTH);
+
+  calibration c;
+
+  for (int i = 0; i < 2; i++)
+  {
+    union {
+      double value;
+      char array[DOUBLE_LENGTH];
+    } u;
+    for (int j = 0; j < DOUBLE_LENGTH; j++) {
+      int index = (i * DOUBLE_LENGTH) * j;
+      u.array[j] = buffer[index];
+    }
+    if (i == 0) {
+      c.calibration0 = u.value;
+    } else if (i == 1) {
+      c.calibration1 = u.value;
+    }
+  }
+
+  return c;
 }
 
 #endif
