@@ -33,12 +33,9 @@ func (c *Table) Listener() core.Listener {
 	return c.receiveUpdates
 }
 
-func (c *Table) Start(context.Context) error {
-	//TODO cancel
+func (c *Table) Start(ctx context.Context, outChan chan error) {
 	c.app = tview.NewApplication()
 	c.table = tview.NewTable().SetBorders(true)
-	if err := c.app.SetRoot(c.table, true).EnableMouse(true).Run(); err != nil {
-		return err
-	}
-	return nil
+	err := c.app.SetRoot(c.table, true).EnableMouse(true).Run()
+	outChan <- err
 }

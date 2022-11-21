@@ -6,7 +6,7 @@ import (
 )
 
 type Device interface {
-	Start(context.Context)
+	Start(context.Context, chan error)
 }
 
 type Reading struct {
@@ -26,7 +26,7 @@ type Listener func(Session, Reading)
 type Output interface {
 	Listener() Listener
 	Close()
-	Start(context.Context)
+	Start(context.Context, chan error)
 }
 
 type Session interface {

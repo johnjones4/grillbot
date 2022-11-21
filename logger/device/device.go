@@ -23,10 +23,13 @@ type device struct {
 	log            *logrus.Logger
 	lastValue      []byte
 	lastMessage    core.Reading
+	lastUpdate     time.Time
 	session        core.Session
+	deltaThreshold float64
+	timeThreshold  time.Duration
 }
 
-func New(log *logrus.Logger, sess core.Session) (core.Device, error) {
+func New(log *logrus.Logger, sess core.Session, deltaThreshold float64, timeThreshold time.Duration) (core.Device, error) {
 	dev, err := darwin.NewDevice()
 	if err != nil {
 		return nil, err
@@ -60,6 +63,8 @@ func New(log *logrus.Logger, sess core.Session) (core.Device, error) {
 		log:            log,
 		lastValue:      nil,
 		session:        sess,
+		deltaThreshold: deltaThreshold,
+		timeThreshold:  timeThreshold,
 	}
 
 	val, err := client.ReadCharacteristic(characteristic)
@@ -74,6 +79,7 @@ func New(log *logrus.Logger, sess core.Session) (core.Device, error) {
 		return nil, err
 	}
 	d.lastMessage = m
+	d.session.NewReading(m)
 	log.Debug("Initial message: ", d.lastMessage)
 
 	return d, nil
@@ -84,6 +90,9 @@ func filter(a ble.Advertisement) bool {
 }
 
 func parseMessage(b []byte) (core.Reading, error) {
+	if len(b) == 0 {
+		return core.Reading{}, nil
+	}
 	return core.Reading{
 		Received: time.Now(),
 		Temp1:    math.Float64frombits(binary.LittleEndian.Uint64(b[:8])),
@@ -91,7 +100,7 @@ func parseMessage(b []byte) (core.Reading, error) {
 	}, nil
 }
 
-func (d *device) Start(ctx context.Context) {
+func (d *device) Start(ctx context.Context, outChan chan error) {
 	stop := ctx.Done()
 	timer := time.NewTicker(time.Millisecond * 500)
 	for {
@@ -101,7 +110,8 @@ func (d *device) Start(ctx context.Context) {
 		case <-timer.C:
 			val, err := d.client.ReadCharacteristic(d.characteristic)
 			if err != nil {
-				d.log.Panic(err)
+				outChan <- err
+				return
 			}
 			if bytes.Equal(val, d.lastValue) {
 				continue
@@ -109,12 +119,16 @@ func (d *device) Start(ctx context.Context) {
 			d.log.Debug("New data available")
 			m, err := parseMessage(val)
 			if err != nil {
-				d.log.Panic(err)
-			}
-			if d.lastMessage.MaxPcntDifference(m) <= 0.01 || d.lastMessage.Received == m.Received {
-				continue
+				outChan <- err
+				return
 			}
 			d.log.Debug("New message ", m)
+			diff := d.lastMessage.MaxPcntDifference(m)
+			now := time.Now()
+			if (diff <= d.deltaThreshold && now.Add(d.timeThreshold*-1).Before(d.lastUpdate)) || d.lastMessage.Received == m.Received {
+				continue
+			}
+			d.lastUpdate = now
 			d.lastValue = val
 			d.lastMessage = m
 			d.session.NewReading(m)

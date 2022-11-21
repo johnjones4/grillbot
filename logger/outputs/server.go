@@ -31,9 +31,6 @@ func NewServer(sess core.Session, host string) *Server {
 		host,
 	}
 
-	server.handler.Use(middleware.RequestID)
-	server.handler.Use(middleware.RealIP)
-	server.handler.Use(middleware.Logger)
 	server.handler.Use(middleware.Recoverer)
 
 	server.handler.Get("/", server.indexHandler)
@@ -57,8 +54,9 @@ func (s *Server) Listener() core.Listener {
 	return s.receiveUpdates
 }
 
-func (s *Server) Start(ctx context.Context) error {
-	return http.ListenAndServe(s.host, s.handler) //TODO stop
+func (s *Server) Start(ctx context.Context, outChan chan error) {
+	err := http.ListenAndServe(s.host, s.handler)
+	outChan <- err
 }
 
 func (s *Server) getReadingsHandler(w http.ResponseWriter, r *http.Request) {
