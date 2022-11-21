@@ -6,9 +6,11 @@
 #define SERVICE_UUID        "1f814c33-4191-45a8-948e-6fcc7f9c10e5"
 #define CHARACTERISTIC_UUID "a3612fbb-7c00-4ab2-b925-425c4ef2a002"
 
+#define CALIBRATION -5.549999999999997
+
 MessagingManager mm(PERIPHERAL_NAME, SERVICE_UUID, CHARACTERISTIC_UUID);
-Thermometer t0(A0);
-Thermometer t1(A3);
+Thermometer t0(A10);
+Thermometer t1(A13);
 
 void setup() {
   Serial.begin(9600);
@@ -16,6 +18,9 @@ void setup() {
   Serial.println("starting ble ...");
   mm.begin();
   Serial.println("started");
+
+  t0.setCalibrationFactor(CALIBRATION);
+  t1.setCalibrationFactor(CALIBRATION);
 }
 
 void loop() {
