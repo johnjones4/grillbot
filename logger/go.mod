@@ -22,6 +22,7 @@ require (
 	github.com/gizak/termui/v3 v3.1.0
 	github.com/go-chi/chi/v5 v5.0.7
 	github.com/gorilla/websocket v1.5.0
+	github.com/guptarohit/asciigraph v0.5.5
 	github.com/konsorten/go-windows-terminal-sequences v1.0.3 // indirect
 	github.com/mattn/go-colorable v0.1.6 // indirect
 	github.com/mattn/go-isatty v0.0.12 // indirect

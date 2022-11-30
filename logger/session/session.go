@@ -121,6 +121,7 @@ func (s *session) SetMetadata(m core.Metadata) error {
 		"method": m.Method,
 		"start":  m.Start.Format(time.RFC3339Nano),
 	}
+	s.log.Info("Setting metadata to ", keyValues)
 	for key, value := range keyValues {
 		row := s.db.QueryRow("SELECT key FROM metadata WHERE key = $1", key)
 		var err error

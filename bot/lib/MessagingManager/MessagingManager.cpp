@@ -56,8 +56,17 @@ void generateMessage(double temp1, double temp2, byte* buffer)
   }
 }
 
+bool isNoise(double t)
+{
+  return t < 10 || t > 800;
+}
+
 void MessagingManager::reportTemperatures(double temp1, double temp2)
 {
+  if (isNoise(temp1) || isNoise(temp2)) {
+    Serial.println("Readings are noisy");
+    return;
+  }
   byte buffer[MESSAGE_LENGTH];
   generateMessage(temp1, temp2, buffer);
   tempCharacteristic->setValue(buffer, MESSAGE_LENGTH);
@@ -89,7 +98,7 @@ calibration MessagingManager::getCalibrations()
       char array[DOUBLE_LENGTH];
     } u;
     for (int j = 0; j < DOUBLE_LENGTH; j++) {
-      int index = (i * DOUBLE_LENGTH) * j;
+      int index = (i * DOUBLE_LENGTH) + j;
       u.array[j] = buffer[index];
     }
     if (i == 0) {
@@ -98,6 +107,8 @@ calibration MessagingManager::getCalibrations()
       c.calibration1 = u.value;
     }
   }
+
+  Serial.printf("Calibrations: %d, %d\n", c.calibration0, c.calibration1);
 
   return c;
 }
