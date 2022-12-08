@@ -28,6 +28,7 @@ void setup() {
 
   double calibration1 = preferences.getDouble(CALIBRATION_1_KEY, 0);
   t1.setCalibrationFactor(calibration1);
+  Serial.printf("Stored calibrations are: %f, %f\n", calibration0, calibration1);
 
   Serial.println("loaded");
 
@@ -40,14 +41,11 @@ void setup() {
 void loop() {
   double t0f = t0.readTemperature();
   double t1f = t1.readTemperature();
-
-  Serial.println("Temps are: ");
-  Serial.println(t0f);
-  Serial.println(t1f);
-
+  Serial.printf("Temps are: %f, %f\n", t0f, t1f);
   mm.reportTemperatures(t0f, t1f);
 
   calibration c = mm.getCalibrations();
+  Serial.printf("BLE calibrations are: %f, %f\n", c.calibration0, c.calibration1);
   t0.setCalibrationFactor(c.calibration0);
   t1.setCalibrationFactor(c.calibration1);
   preferences.putDouble(CALIBRATION_0_KEY, c.calibration0);

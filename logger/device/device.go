@@ -61,7 +61,7 @@ func New(log *logrus.Logger, sess core.Session, deltaThreshold float64, timeThre
 	tempCharacteristic := tempCharacteristicI.(*ble.Characteristic)
 	log.Debug("Got temp characteristic")
 
-	calibCharacteristicI := profile.Find(ble.NewCharacteristic(tempCharacteristicUUID))
+	calibCharacteristicI := profile.Find(ble.NewCharacteristic(calibCharacteristicUUID))
 	if calibCharacteristicI == nil {
 		return nil, errors.New("temp characteristic not found")
 	}
@@ -192,4 +192,5 @@ func (d *device) SetCalibration(c core.Calibration) {
 	buf3 := append(buf1, buf2...)
 	d.log.Info("Encoded calibration data as: ", hex.EncodeToString(buf3))
 	d.calibCharacteristic.SetValue(buf3)
+	d.client.WriteCharacteristic(d.calibCharacteristic, d.calibCharacteristic.Value, false)
 }
