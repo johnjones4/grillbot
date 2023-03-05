@@ -2,6 +2,7 @@
 #include <MessagingManager.h>
 #include <Thermometer.h>
 #include <Preferences.h>
+#include <Display.h>
 
 #define PERIPHERAL_NAME     "GrillBot"
 #define SERVICE_UUID        "1f814c33-4191-45a8-948e-6fcc7f9c10e5"
@@ -12,6 +13,7 @@
 #define CALIBRATION_1_KEY "calibration_1"
 
 Preferences preferences;
+Display display;
 
 MessagingManager mm(PERIPHERAL_NAME, SERVICE_UUID, TEMP_CHARACTERISTIC_UUID, CALIB_CHARACTERISTIC_UUID);
 Thermometer t0(A10);
@@ -36,6 +38,9 @@ void setup() {
   mm.begin();
   mm.setCalibrations(calibration0, calibration1);
   Serial.println("started");
+
+  Serial.println("starting display ...");
+  display.begin();
 }
 
 void loop() {
@@ -50,6 +55,8 @@ void loop() {
   t1.setCalibrationFactor(c.calibration1);
   preferences.putDouble(CALIBRATION_0_KEY, c.calibration0);
   preferences.putDouble(CALIBRATION_1_KEY, c.calibration1);
+
+  display.reportData(t0f, t1f, c.calibration0, c.calibration1);
   
   delay(1000);
 }
