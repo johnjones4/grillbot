@@ -35,5 +35,6 @@ require (
 	github.com/rivo/tview v0.0.0-20221113180720-04a46906d2e9
 	github.com/sirupsen/logrus v1.6.0 // indirect
 	github.com/stretchr/testify v1.6.1 // indirect
+	github.com/tarm/serial v0.0.0-20180830185346-98f6abe2eb07
 	golang.org/x/sys v0.0.0-20211204120058-94396e421777 // indirect
 )

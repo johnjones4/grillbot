@@ -18,8 +18,8 @@ func NormalizeTimeDistribution(readings []core.Reading, width int) [][]float64 {
 		aggregate := [2]float64{0, 0}
 		count := 0.0
 		for readings[j].Received.Before(curTime) || readings[j].Received.Equal(curTime) {
-			aggregate[0] += readings[j].Temp1
-			aggregate[1] += readings[j].Temp2
+			aggregate[0] += readings[j].Temperatures[0]
+			aggregate[1] += readings[j].Temperatures[1]
 			count++
 			j++
 			if j == len(readings) {

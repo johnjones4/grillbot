@@ -12,7 +12,7 @@ import (
 
 type simDevice struct {
 	log         *logrus.Logger
-	calibration core.Calibration
+	calibration [2]float64
 	start       time.Time
 	session     core.Session
 	lock        sync.RWMutex
@@ -21,7 +21,7 @@ type simDevice struct {
 func NewSim(log *logrus.Logger, sess core.Session) core.Device {
 	return &simDevice{
 		log:         log,
-		calibration: core.Calibration{},
+		calibration: [2]float64{},
 		session:     sess,
 		lock:        sync.RWMutex{},
 	}
@@ -31,8 +31,10 @@ func (s *simDevice) makeReading() core.Reading {
 	elapsed := time.Since(s.start)
 	return core.Reading{
 		Received: time.Now(),
-		Temp1:    math.Sin(elapsed.Seconds()/60)*100 + 100 + s.calibration.Temp1,
-		Temp2:    math.Cos(elapsed.Seconds()/60)*100 + 100 + s.calibration.Temp2,
+		Temperatures: [2]float64{
+			math.Sin(elapsed.Seconds()/60)*100 + 100 + s.calibration[0],
+			math.Cos(elapsed.Seconds()/60)*100 + 100 + s.calibration[1],
+		},
 	}
 }
 
@@ -53,13 +55,13 @@ func (s *simDevice) Start(ctx context.Context, erchan chan error) {
 	}
 }
 
-func (s *simDevice) GetCalibration() core.Calibration {
+func (s *simDevice) GetCalibration() [2]float64 {
 	s.lock.RLock()
 	defer s.lock.RUnlock()
 	return s.calibration
 }
 
-func (s *simDevice) SetCalibration(calibration core.Calibration) {
+func (s *simDevice) SetCalibration(calibration [2]float64) {
 	s.lock.Lock()
 	s.calibration = calibration
 	s.lock.Unlock()

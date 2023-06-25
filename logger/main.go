@@ -19,6 +19,7 @@ func main() {
 	timeThreshold := flag.Duration("time-threshold", time.Second*30, "Time threshold")
 	simulated := flag.Bool("simulated", false, "use simulated data")
 	resume := flag.String("resume", "", "Resume a previous cook")
+	serial := flag.String("serial", "", "Serial device to use")
 
 	flag.Parse()
 
@@ -53,7 +54,7 @@ func main() {
 	if *simulated {
 		dev = device.NewSim(log, sess)
 	} else {
-		dev, err = device.New(log, sess, *changeThreshold, *timeThreshold)
+		dev, err = device.New(log, sess, *changeThreshold, *timeThreshold, *serial)
 		if err != nil {
 			log.Panic(err)
 		}

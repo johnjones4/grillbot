@@ -88,13 +88,13 @@ func (c *UI) setupForm() error {
 	})
 
 	calbration := c.device.GetCalibration()
-	tempTemp1 := fmt.Sprint(calbration.Temp1)
-	tempTemp2 := fmt.Sprint(calbration.Temp2)
-	c.form.AddInputField("Calibration 1", tempTemp1, 0, nil, func(text string) {
-		tempTemp1 = text
+	tempTemperatures[0] := fmt.Sprint(calbration.Temperatures[0])
+	tempTemperatures[1] := fmt.Sprint(calbration.Temperatures[1])
+	c.form.AddInputField("Calibration 1", tempTemperatures[0], 0, nil, func(text string) {
+		tempTemperatures[0] = text
 	})
-	c.form.AddInputField("Calibration 2", tempTemp2, 0, nil, func(text string) {
-		tempTemp2 = text
+	c.form.AddInputField("Calibration 2", tempTemperatures[1], 0, nil, func(text string) {
+		tempTemperatures[1] = text
 	})
 
 	c.form.AddButton("Save", func() {
@@ -106,13 +106,13 @@ func (c *UI) setupForm() error {
 
 		calib := core.Calibration{}
 
-		calib.Temp1, err = strconv.ParseFloat(tempTemp1, 64)
+		calib.Temperatures[0], err = strconv.ParseFloat(tempTemperatures[0], 64)
 		if err != nil {
 			c.log.Error(err)
 			return
 		}
 
-		calib.Temp2, err = strconv.ParseFloat(tempTemp2, 64)
+		calib.Temperatures[1], err = strconv.ParseFloat(tempTemperatures[1], 64)
 		if err != nil {
 			c.log.Error(err)
 			return
@@ -135,8 +135,8 @@ func (c *UI) Listener() core.Listener {
 func (c *UI) updateTable(reading core.Reading) {
 	row := c.table.GetRowCount()
 	c.table.SetCell(row, 0, tview.NewTableCell(reading.Received.Format(time.Stamp)))
-	c.table.SetCell(row, 1, tview.NewTableCell(fmt.Sprint(reading.Temp1)))
-	c.table.SetCell(row, 3, tview.NewTableCell(fmt.Sprint(reading.Temp2)))
+	c.table.SetCell(row, 1, tview.NewTableCell(fmt.Sprint(reading.Temperatures[0])))
+	c.table.SetCell(row, 3, tview.NewTableCell(fmt.Sprint(reading.Temperatures[1])))
 }
 
 func (c *UI) updatePlot() {

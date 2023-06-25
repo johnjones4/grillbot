@@ -5,140 +5,86 @@ import (
 	"context"
 	"encoding/binary"
 	"encoding/hex"
-	"errors"
 	"math"
+	"strings"
+	"sync"
 	"time"
 
 	"main/core"
 
-	"github.com/go-ble/ble"
-	"github.com/go-ble/ble/darwin"
 	"github.com/sirupsen/logrus"
+	"github.com/tarm/serial"
 )
 
-var tempCharacteristicUUID = ble.MustParse("a3612fbb-7c00-4ab2-b925-425c4ef2a002")
-var calibCharacteristicUUID = ble.MustParse("09222388-fd96-4194-822b-fa052786c130")
-
 type device struct {
-	client              ble.Client
-	tempCharacteristic  *ble.Characteristic
-	calibCharacteristic *ble.Characteristic
-	log                 *logrus.Logger
-	lastValue           []byte
-	lastMessage         core.Reading
-	lastUpdate          time.Time
-	session             core.Session
-	deltaThreshold      float64
-	timeThreshold       time.Duration
-	currentCaliration   core.Calibration
+	log            *logrus.Logger
+	lastValue      []byte
+	lastMessage    core.Reading
+	lastUpdate     time.Time
+	session        core.Session
+	deltaThreshold float64
+	timeThreshold  time.Duration
+	calibration    [2]float64
+	port           *serial.Port
+	buffer         []byte
+	lock           sync.RWMutex
 }
 
-func New(log *logrus.Logger, sess core.Session, deltaThreshold float64, timeThreshold time.Duration) (core.Device, error) {
-	dev, err := darwin.NewDevice()
+func New(log *logrus.Logger, sess core.Session, deltaThreshold float64, timeThreshold time.Duration, handle string) (core.Device, error) {
+	c := &serial.Config{Name: handle, Baud: 9600}
+	s, err := serial.OpenPort(c)
 	if err != nil {
 		return nil, err
 	}
-	ble.SetDefaultDevice(dev)
-	log.Debug("Loaded device")
-
-	ctx := ble.WithSigHandler(context.WithTimeout(context.Background(), 60*time.Second))
-	client, err := ble.Connect(ctx, filter)
-	if err != nil {
-		return nil, err
-	}
-	log.Debug("Got client")
-
-	profile, err := client.DiscoverProfile(true)
-	if err != nil {
-		return nil, err
-	}
-	log.Debug("Got profile")
-
-	tempCharacteristicI := profile.Find(ble.NewCharacteristic(tempCharacteristicUUID))
-	if tempCharacteristicI == nil {
-		return nil, errors.New("temp characteristic not found")
-	}
-	tempCharacteristic := tempCharacteristicI.(*ble.Characteristic)
-	log.Debug("Got temp characteristic")
-
-	calibCharacteristicI := profile.Find(ble.NewCharacteristic(calibCharacteristicUUID))
-	if calibCharacteristicI == nil {
-		return nil, errors.New("temp characteristic not found")
-	}
-	calibCharacteristic := calibCharacteristicI.(*ble.Characteristic)
-	log.Debug("Got temp characteristic")
 
 	d := &device{
-		client:              client,
-		tempCharacteristic:  tempCharacteristic,
-		calibCharacteristic: calibCharacteristic,
-		log:                 log,
-		lastValue:           nil,
-		session:             sess,
-		deltaThreshold:      deltaThreshold,
-		timeThreshold:       timeThreshold,
-	}
-
-	val, err := client.ReadCharacteristic(tempCharacteristic)
-	if err != nil {
-		return nil, err
-	}
-	d.lastValue = val
-	log.Debug("Initial temp value: ", d.lastValue)
-
-	m, err := parseMessage(val)
-	if err != nil {
-		return nil, err
-	}
-	d.lastMessage = m
-	log.Debug("Initial message: ", d.lastMessage)
-
-	calibVal, err := client.ReadCharacteristic(calibCharacteristic)
-	if err != nil {
-		return nil, err
-	}
-	log.Debug("Initial calbiration value: ", d.lastValue)
-	calibration, err := parseCalibration(calibVal)
-	if err != nil {
-		return nil, err
-	}
-	d.currentCaliration = calibration
-	log.Debug("Initial calibration: ", calibration)
-
-	if isValidReading(m) {
-		d.session.NewReading(m)
+		log:            log,
+		lastValue:      nil,
+		session:        sess,
+		deltaThreshold: deltaThreshold,
+		timeThreshold:  timeThreshold,
+		port:           s,
+		buffer:         make([]byte, 0),
 	}
 
 	return d, nil
 }
 
-func filter(a ble.Advertisement) bool {
-	return a.LocalName() == "GrillBot"
-}
-
 func isValidReading(r core.Reading) bool {
-	return r.Temp1 != 0 && r.Temp2 != 0 && !r.Received.IsZero()
+	return r.Temperatures[0] != 0 && r.Temperatures[1] != 0 && !r.Received.IsZero()
 }
 
-func parseMessage(b []byte) (core.Reading, error) {
-	if len(b) == 0 {
+func (d *device) parseMessage(b []byte) (core.Reading, error) {
+	if len(b) == 0 || len(b) < 16 {
 		return core.Reading{}, nil
 	}
 	return core.Reading{
 		Received: time.Now(),
-		Temp1:    math.Float64frombits(binary.LittleEndian.Uint64(b[:8])),
-		Temp2:    math.Float64frombits(binary.LittleEndian.Uint64(b[8:])),
+		Temperatures: [2]float64{
+			math.Float64frombits(binary.LittleEndian.Uint64(b[:8])) + d.calibration[0],
+			math.Float64frombits(binary.LittleEndian.Uint64(b[8:16])) + d.calibration[1],
+		},
 	}, nil
 }
 
-func parseCalibration(b []byte) (core.Calibration, error) {
-	if len(b) == 0 {
-		return core.Calibration{}, nil
+func (d *device) nextMessage() ([]byte, error) {
+	buffer := make([]byte, 17)
+	read, err := d.port.Read(buffer)
+	if err != nil {
+		return nil, err
 	}
-	return core.Calibration{
-		Temp1: math.Float64frombits(binary.LittleEndian.Uint64(b[:8])),
-		Temp2: math.Float64frombits(binary.LittleEndian.Uint64(b[8:])),
-	}, nil
+
+	buffer = append(d.buffer, buffer[:read]...)
+
+	newline := strings.IndexByte(string(buffer), '\n')
+
+	if newline < 0 {
+		d.buffer = buffer
+		return nil, nil
+	}
+
+	d.buffer = buffer[newline:]
+	return buffer[:newline], nil
 }
 
 func (d *device) Start(ctx context.Context, outChan chan error) {
@@ -147,9 +93,11 @@ func (d *device) Start(ctx context.Context, outChan chan error) {
 	for {
 		select {
 		case <-stop:
+			err := d.port.Close()
+			outChan <- err
 			return
 		case <-timer.C:
-			val, err := d.client.ReadCharacteristic(d.tempCharacteristic)
+			val, err := d.nextMessage()
 			if err != nil {
 				outChan <- err
 				return
@@ -158,7 +106,7 @@ func (d *device) Start(ctx context.Context, outChan chan error) {
 				continue
 			}
 			d.log.Debug("New data available: ", hex.EncodeToString(val))
-			m, err := parseMessage(val)
+			m, err := d.parseMessage(val)
 			if err != nil {
 				outChan <- err
 				return
@@ -179,18 +127,15 @@ func (d *device) Start(ctx context.Context, outChan chan error) {
 	}
 }
 
-func (d *device) GetCalibration() core.Calibration {
-	return d.currentCaliration
+func (d *device) GetCalibration() [2]float64 {
+	d.lock.RLock()
+	defer d.lock.RUnlock()
+	return d.calibration
 }
 
-func (d *device) SetCalibration(c core.Calibration) {
-	d.log.Info("Sending new calibratin data: ", c)
-	buf1 := make([]byte, 8)
-	binary.LittleEndian.PutUint64(buf1, math.Float64bits(c.Temp1))
-	buf2 := make([]byte, 8)
-	binary.LittleEndian.PutUint64(buf2, math.Float64bits(c.Temp2))
-	buf3 := append(buf1, buf2...)
-	d.log.Info("Encoded calibration data as: ", hex.EncodeToString(buf3))
-	d.calibCharacteristic.SetValue(buf3)
-	d.client.WriteCharacteristic(d.calibCharacteristic, d.calibCharacteristic.Value, false)
+func (d *device) SetCalibration(calibration [2]float64) {
+	d.lock.Lock()
+	d.calibration = calibration
+	d.lock.Unlock()
+	d.log.Info("calibration is now ", calibration)
 }

@@ -7,19 +7,13 @@ import (
 
 type Device interface {
 	Start(context.Context, chan error)
-	GetCalibration() Calibration
-	SetCalibration(Calibration)
+	GetCalibration() [2]float64
+	SetCalibration([2]float64)
 }
 
 type Reading struct {
-	Received time.Time `json:"received"`
-	Temp1    float64   `json:"temp1"`
-	Temp2    float64   `json:"temp2"`
-}
-
-type Calibration struct {
-	Temp1 float64 `json:"temp1"`
-	Temp2 float64 `json:"temp2"`
+	Received     time.Time  `json:"received"`
+	Temperatures [2]float64 `json:"temperatures"`
 }
 
 type Metadata struct {

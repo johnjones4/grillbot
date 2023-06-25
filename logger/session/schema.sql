@@ -1,7 +1,7 @@
 CREATE TABLE readings (
   received INT NOT NULL PRIMARY KEY,
-  temp1 NUMERIC NOT NULL,
-  temp2 NUMERIC NOT NULL
+  Temperatures[0] NUMERIC NOT NULL,
+  Temperatures[1] NUMERIC NOT NULL
 );
 
 CREATE TABLE metadata (
