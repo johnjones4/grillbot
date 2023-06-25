@@ -69,7 +69,7 @@ func (s *session) NewReading(r core.Reading) {
 		return
 	}
 
-	_, err = s.db.Exec("INSERT INTO readings (received, Temperatures[0], Temperatures[1]) VALUES ($1, $2, $3)", r.Received.Unix(), r.Temperatures[0], r.Temperatures[1])
+	_, err = s.db.Exec("INSERT INTO readings (received, temperature0, temperature1) VALUES ($1, $2, $3)", r.Received.Unix(), r.Temperatures[0], r.Temperatures[1])
 	if err != nil {
 		s.log.Error(err)
 	}
@@ -85,7 +85,7 @@ func (s *session) GetReadings() ([]core.Reading, error) {
 		return nil, err
 	}
 
-	rows, err := s.db.Query("SELECT received, Temperatures[0], Temperatures[1] FROM readings ORDER BY received")
+	rows, err := s.db.Query("SELECT received, temperature0, temperature1 FROM readings ORDER BY received")
 	if err != nil {
 		return nil, err
 	}

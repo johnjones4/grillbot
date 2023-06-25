@@ -6,7 +6,6 @@ import (
 	"main/core"
 	"main/device"
 	"main/session"
-	"main/ui"
 	"time"
 
 	"github.com/sirupsen/logrus"
@@ -26,7 +25,7 @@ func main() {
 	ctx := context.Background()
 
 	log := logrus.New()
-	log.SetLevel(logrus.DebugLevel)
+	// log.SetLevel(logrus.DebugLevel)
 	log.Info("Initializing")
 
 	var err error
@@ -63,15 +62,15 @@ func main() {
 
 	log.Info("Starting device")
 	errChan := make(chan error)
-	go dev.Start(ctx, errChan)
+	dev.Start(ctx, errChan)
 
-	uiinst, err := ui.New(log, sess, dev)
-	if err != nil {
-		log.Panic(err)
-	}
-	log.SetOutput(uiinst.LogView)
-	sess.AddListener(uiinst.Listener())
-	log.Info("UI starting")
+	// uiinst, err := ui.New(log, sess, dev)
+	// if err != nil {
+	// 	log.Panic(err)
+	// }
+	// log.SetOutput(uiinst.LogView)
+	// sess.AddListener(uiinst.Listener())
+	// log.Info("UI starting")
 
-	uiinst.Start(ctx, errChan)
+	// uiinst.Start(ctx, errChan)
 }
