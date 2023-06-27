@@ -7,8 +7,6 @@ import (
 
 type Device interface {
 	Start(context.Context, chan error)
-	GetCalibration() [2]float64
-	SetCalibration([2]float64)
 }
 
 type Reading struct {
@@ -17,9 +15,10 @@ type Reading struct {
 }
 
 type Metadata struct {
-	Food   string    `json:"food"`
-	Method string    `json:"method"`
-	Start  time.Time `json:"start"`
+	Food         string     `json:"food"`
+	Method       string     `json:"method"`
+	Start        time.Time  `json:"start"`
+	Calibrations [2]float64 `json:"calibrations"`
 }
 
 type Listener func(Session, Reading)

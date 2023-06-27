@@ -88,9 +88,8 @@ func (c *UI) setupForm() error {
 	})
 
 	var tempTemperatures [2]string
-	calbration := c.device.GetCalibration()
-	tempTemperatures[0] = fmt.Sprint(calbration[0])
-	tempTemperatures[1] = fmt.Sprint(calbration[1])
+	tempTemperatures[0] = fmt.Sprint(md.Calibrations[0])
+	tempTemperatures[1] = fmt.Sprint(md.Calibrations[1])
 	c.form.AddInputField("Calibration 1", tempTemperatures[0], 0, nil, func(text string) {
 		tempTemperatures[0] = text
 	})
@@ -99,12 +98,6 @@ func (c *UI) setupForm() error {
 	})
 
 	c.form.AddButton("Save", func() {
-		err := c.session.SetMetadata(tempMd)
-		if err != nil {
-			c.log.Error(err)
-			return
-		}
-
 		var calib [2]float64
 
 		calib[0], err = strconv.ParseFloat(tempTemperatures[0], 64)
@@ -119,7 +112,14 @@ func (c *UI) setupForm() error {
 			return
 		}
 
-		c.device.SetCalibration(calib)
+		tempMd.Calibrations = calib
+
+		err := c.session.SetMetadata(tempMd)
+		if err != nil {
+			c.log.Error(err)
+			return
+		}
+
 	})
 
 	return nil

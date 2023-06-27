@@ -2,68 +2,47 @@ package device
 
 import (
 	"context"
+	_ "embed"
 	"main/core"
-	"math"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/sirupsen/logrus"
 )
 
+//go:embed sampledata.txt
+var sampledata string
+
 type simDevice struct {
-	log         *logrus.Logger
-	calibration [2]float64
-	start       time.Time
-	session     core.Session
-	lock        sync.RWMutex
+	baseDevice
+	lock  sync.RWMutex
+	start time.Time
+	data  [][]byte
 }
 
 func NewSim(log *logrus.Logger, sess core.Session) core.Device {
-	return &simDevice{
-		log:         log,
-		calibration: [2]float64{},
-		session:     sess,
-		lock:        sync.RWMutex{},
+	lines := strings.Split(sampledata, "\n")
+	buffer := make([][]byte, len(lines))
+	for i := 0; i < len(lines); i++ {
+		buffer[i] = []byte(lines[i])
 	}
-}
-
-func (s *simDevice) makeReading() core.Reading {
-	elapsed := time.Since(s.start)
-	return core.Reading{
-		Received: time.Now(),
-		Temperatures: [2]float64{
-			math.Sin(elapsed.Seconds()/60)*100 + 100 + s.calibration[0],
-			math.Cos(elapsed.Seconds()/60)*100 + 100 + s.calibration[1],
+	return &simDevice{
+		baseDevice: baseDevice{
+			log:     log,
+			session: sess,
 		},
+		lock:  sync.RWMutex{},
+		start: time.Now(),
+		data:  buffer,
 	}
 }
 
 func (s *simDevice) Start(ctx context.Context, erchan chan error) {
-	stop := ctx.Done()
-	timer := time.NewTicker(time.Second)
-	s.start = time.Now()
-	r := s.makeReading()
-	s.session.NewReading(r)
-	for {
-		select {
-		case <-stop:
-			return
-		case <-timer.C:
-			r := s.makeReading()
-			s.session.NewReading(r)
-		}
-	}
+	s.baseDevice.start(ctx, erchan, func() error { return nil }, s.nextMessage)
 }
 
-func (s *simDevice) GetCalibration() [2]float64 {
-	s.lock.RLock()
-	defer s.lock.RUnlock()
-	return s.calibration
-}
-
-func (s *simDevice) SetCalibration(calibration [2]float64) {
-	s.lock.Lock()
-	s.calibration = calibration
-	s.lock.Unlock()
-	s.log.Info("calibration is now ", calibration)
+func (d *simDevice) nextMessage() ([]byte, error) {
+	elapsed := time.Now().Sub(d.start)
+	return d.data[int(elapsed)%len(d.data)], nil
 }

@@ -69,7 +69,7 @@ func (s *session) NewReading(r core.Reading) {
 		return
 	}
 
-	_, err = s.db.Exec("INSERT INTO readings (received, temperature0, temperature1) VALUES ($1, $2, $3)", r.Received.Unix(), r.Temperatures[0], r.Temperatures[1])
+	_, err = s.db.Exec("INSERT INTO readings (received, temperature0, temperature1) VALUES ($1, $2, $3)", r.Received.UnixMilli(), r.Temperatures[0], r.Temperatures[1])
 	if err != nil {
 		s.log.Error(err)
 	}
@@ -104,7 +104,7 @@ func (s *session) GetReadings() ([]core.Reading, error) {
 			return nil, err
 		}
 
-		reading.Received = time.Unix(receivedInt, 0)
+		reading.Received = time.UnixMilli(receivedInt)
 		readings = append(readings, reading)
 	}
 	return readings, nil
@@ -130,6 +130,7 @@ func (s *session) SetMetadata(m core.Metadata) error {
 		} else {
 			_, err = s.db.Exec("UPDATE metadata SET value = $1 WHERE key = $2", value, key)
 		}
+		//TODO calibrations
 		if err != nil {
 			return err
 		}
@@ -168,6 +169,7 @@ func (s *session) GetMetadata() (core.Metadata, error) {
 				return core.Metadata{}, err
 			}
 			metadata.Start = t
+			//TODO calibrations
 		}
 	}
 

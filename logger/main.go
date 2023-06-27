@@ -25,7 +25,7 @@ func main() {
 	ctx := context.Background()
 
 	log := logrus.New()
-	// log.SetLevel(logrus.DebugLevel)
+	log.SetLevel(logrus.DebugLevel)
 	log.Info("Initializing")
 
 	var err error
