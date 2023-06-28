@@ -3,8 +3,8 @@ package device
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 	"encoding/binary"
-	"encoding/hex"
 	"main/core"
 	"math"
 	"time"
@@ -26,11 +26,15 @@ func (d *baseDevice) parseMessage(b []byte) (core.Reading, error) {
 	if len(b) == 0 || len(b) < 16 {
 		return core.Reading{}, nil
 	}
+	bb, err := base64.StdEncoding.DecodeString(string(b))
+	if err != nil {
+		return core.Reading{}, err
+	}
 	return core.Reading{
 		Received: time.Now(),
 		Temperatures: [2]float64{
-			math.Float64frombits(binary.LittleEndian.Uint64(b[:8])),
-			math.Float64frombits(binary.LittleEndian.Uint64(b[8:16])),
+			math.Float64frombits(binary.LittleEndian.Uint64(bb[:8])),
+			math.Float64frombits(binary.LittleEndian.Uint64(bb[8:16])),
 		},
 	}, nil
 }
@@ -52,7 +56,7 @@ func (d *baseDevice) start(ctx context.Context, outChan chan error, closer func(
 			if bytes.Equal(val, d.lastValue) {
 				continue
 			}
-			d.log.Debug("New data available: ", hex.EncodeToString(val))
+			d.log.Debug("New data available: ", string(val))
 			m, err := d.parseMessage(val)
 			if err != nil {
 				outChan <- err

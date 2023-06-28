@@ -6,6 +6,7 @@ import (
 	"main/core"
 	"main/device"
 	"main/session"
+	"main/ui"
 	"time"
 
 	"github.com/sirupsen/logrus"
@@ -19,6 +20,7 @@ func main() {
 	simulated := flag.Bool("simulated", false, "use simulated data")
 	resume := flag.String("resume", "", "Resume a previous cook")
 	serial := flag.String("serial", "", "Serial device to use")
+	showui := flag.Bool("ui", true, "show the UI")
 
 	flag.Parse()
 
@@ -62,15 +64,21 @@ func main() {
 
 	log.Info("Starting device")
 	errChan := make(chan error)
-	dev.Start(ctx, errChan)
+	go dev.Start(ctx, errChan)
 
-	// uiinst, err := ui.New(log, sess, dev)
-	// if err != nil {
-	// 	log.Panic(err)
-	// }
-	// log.SetOutput(uiinst.LogView)
-	// sess.AddListener(uiinst.Listener())
-	// log.Info("UI starting")
+	if *showui {
+		uiinst, err := ui.New(log, sess, dev)
+		if err != nil {
+			log.Panic(err)
+		}
+		log.SetOutput(uiinst.LogView)
+		sess.AddListener(uiinst.Listener())
+		log.Info("UI starting")
 
-	// uiinst.Start(ctx, errChan)
+		uiinst.Start(ctx, errChan)
+	} else {
+		for {
+			time.Sleep(time.Second)
+		}
+	}
 }

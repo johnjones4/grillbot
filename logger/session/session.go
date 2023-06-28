@@ -3,6 +3,7 @@ package session
 import (
 	"database/sql"
 	_ "embed"
+	"encoding/json"
 	"fmt"
 	"main/core"
 	"os"
@@ -22,6 +23,7 @@ type session struct {
 	db        *sql.DB
 	log       *logrus.Logger
 	filepath  string
+	metadata  core.Metadata
 }
 
 func New(log *logrus.Logger, md core.Metadata) (core.Session, error) {
@@ -67,6 +69,10 @@ func (s *session) NewReading(r core.Reading) {
 	if err != nil {
 		s.log.Error(err)
 		return
+	}
+
+	for i := range r.Temperatures {
+		r.Temperatures[i] += s.metadata.Calibrations[i]
 	}
 
 	_, err = s.db.Exec("INSERT INTO readings (received, temperature0, temperature1) VALUES ($1, $2, $3)", r.Received.UnixMilli(), r.Temperatures[0], r.Temperatures[1])
@@ -116,10 +122,16 @@ func (s *session) SetMetadata(m core.Metadata) error {
 		return err
 	}
 
+	cjson, err := json.Marshal(m.Calibrations)
+	if err != nil {
+		return err
+	}
+
 	keyValues := map[string]string{
-		"food":   m.Food,
-		"method": m.Method,
-		"start":  m.Start.Format(time.RFC3339Nano),
+		"food":         m.Food,
+		"method":       m.Method,
+		"start":        m.Start.Format(time.RFC3339Nano),
+		"calibrations": string(cjson),
 	}
 	s.log.Info("Setting metadata to ", keyValues)
 	for key, value := range keyValues {
@@ -130,11 +142,13 @@ func (s *session) SetMetadata(m core.Metadata) error {
 		} else {
 			_, err = s.db.Exec("UPDATE metadata SET value = $1 WHERE key = $2", value, key)
 		}
-		//TODO calibrations
 		if err != nil {
 			return err
 		}
 	}
+
+	s.metadata = m
+
 	return nil
 }
 
@@ -169,9 +183,15 @@ func (s *session) GetMetadata() (core.Metadata, error) {
 				return core.Metadata{}, err
 			}
 			metadata.Start = t
-			//TODO calibrations
+		case "calibrations":
+			err := json.Unmarshal([]byte(value), &metadata.Calibrations)
+			if err != nil {
+				return core.Metadata{}, err
+			}
 		}
 	}
+
+	s.metadata = metadata
 
 	return metadata, nil
 }

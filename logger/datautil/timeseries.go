@@ -17,13 +17,14 @@ func NormalizeTimeDistribution(readings []core.Reading, width int) [][]float64 {
 		curTime := start.Add(time.Duration(i) * timeInterval)
 		aggregate := [2]float64{0, 0}
 		count := 0.0
+	innerloop:
 		for readings[j].Received.Before(curTime) || readings[j].Received.Equal(curTime) {
 			aggregate[0] += readings[j].Temperatures[0]
 			aggregate[1] += readings[j].Temperatures[1]
 			count++
 			j++
 			if j == len(readings) {
-				panic("we shouldn't get here")
+				break innerloop
 			}
 		}
 		for k := 0; k < 2; k++ {
