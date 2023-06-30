@@ -39,18 +39,19 @@ func (d *baseDevice) parseMessage(b []byte) (core.Reading, error) {
 	}, nil
 }
 
-func (d *baseDevice) start(ctx context.Context, outChan chan error, closer func() error, nextMessage func() ([]byte, error)) {
+func (d *baseDevice) start(ctx context.Context, closer func() error, nextMessage func() ([]byte, error)) {
 	stop := ctx.Done()
 	timer := time.NewTicker(time.Millisecond * 500)
 	for {
 		select {
 		case <-stop:
-			outChan <- closer()
+			err := closer()
+			d.log.Error(err)
 			return
 		case <-timer.C:
 			val, err := nextMessage()
 			if err != nil {
-				outChan <- err
+				d.log.Error(err)
 				return
 			}
 			if bytes.Equal(val, d.lastValue) {
@@ -59,13 +60,14 @@ func (d *baseDevice) start(ctx context.Context, outChan chan error, closer func(
 			d.log.Debug("New data available: ", string(val))
 			m, err := d.parseMessage(val)
 			if err != nil {
-				outChan <- err
+				d.log.Error(err)
 				return
 			}
 			d.log.Debug("New message: ", m)
 			diff := d.lastMessage.MaxPcntDifference(m)
 			now := time.Now()
 			if (diff <= d.deltaThreshold && now.Add(d.timeThreshold*-1).Before(d.lastUpdate)) || d.lastMessage.Received == m.Received {
+				d.log.Debug("Reading within change threshold")
 				continue
 			}
 			d.lastUpdate = now

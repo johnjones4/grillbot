@@ -8,6 +8,7 @@ import (
 	"main/core"
 	"os"
 	"path"
+	"sync"
 	"time"
 
 	"github.com/flytam/filenamify"
@@ -19,11 +20,12 @@ import (
 var schema string
 
 type session struct {
-	listeners []core.Listener
-	db        *sql.DB
-	log       *logrus.Logger
-	filepath  string
-	metadata  core.Metadata
+	listeners    []core.Listener
+	db           *sql.DB
+	log          *logrus.Logger
+	filepath     string
+	metadata     core.Metadata
+	listenerLock sync.RWMutex
 }
 
 func New(log *logrus.Logger, md core.Metadata) (core.Session, error) {
@@ -80,6 +82,8 @@ func (s *session) NewReading(r core.Reading) {
 		s.log.Error(err)
 	}
 
+	s.listenerLock.RLock()
+	defer s.listenerLock.RUnlock()
 	for _, l := range s.listeners {
 		l(s, r)
 	}
@@ -196,8 +200,23 @@ func (s *session) GetMetadata() (core.Metadata, error) {
 	return metadata, nil
 }
 
-func (s *session) AddListener(l core.Listener) {
+func (s *session) AddListener(l core.Listener) int {
+	s.listenerLock.Lock()
+	defer s.listenerLock.Unlock()
 	s.listeners = append(s.listeners, l)
+	return len(s.listeners) - 1
+}
+
+func (s *session) RemoveListener(i int) {
+	s.listenerLock.Lock()
+	defer s.listenerLock.Unlock()
+	newListeners := make([]core.Listener, 0)
+	for ii, li := range s.listeners {
+		if ii != i {
+			newListeners = append(newListeners, li)
+		}
+	}
+	s.listeners = newListeners
 }
 
 func (s *session) open() error {

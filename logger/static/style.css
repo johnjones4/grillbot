@@ -1,0 +1,12 @@
+
+.temperatures {
+  display: flex;
+  flex-direction: column;
+}
+
+.temperatures .temperature {
+  font-size: 60px;
+  font-weight: bold;
+  text-align: center;
+  flex-grow: 1;
+}

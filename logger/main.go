@@ -5,8 +5,9 @@ import (
 	"flag"
 	"main/core"
 	"main/device"
+	"main/server"
 	"main/session"
-	"main/ui"
+	"net/http"
 	"time"
 
 	"github.com/sirupsen/logrus"
@@ -15,24 +16,27 @@ import (
 func main() {
 	method := flag.String("method", "smoked", "Method of cooking")
 	food := flag.String("food", "", "Food being prepared")
-	changeThreshold := flag.Float64("change-threshold", 0.01, "Percent change threshold")
+	changeThreshold := flag.Float64("change-threshold", 0.02, "Percent change threshold")
 	timeThreshold := flag.Duration("time-threshold", time.Second*30, "Time threshold")
 	simulated := flag.Bool("simulated", false, "use simulated data")
-	resume := flag.String("resume", "", "Resume a previous cook")
+	file := flag.String("file", "", "Resume a previous cook")
 	serial := flag.String("serial", "", "Serial device to use")
-	showui := flag.Bool("ui", true, "show the UI")
+	debug := flag.Bool("debug", false, "Run with debug logging")
+	host := flag.String("host", ":8080", "Hostname to listen on")
 
 	flag.Parse()
 
 	ctx := context.Background()
 
 	log := logrus.New()
-	log.SetLevel(logrus.DebugLevel)
+	if *debug {
+		log.SetLevel(logrus.DebugLevel)
+	}
 	log.Info("Initializing")
 
 	var err error
 	var sess core.Session
-	if *resume == "" {
+	if *file == "" {
 		md := core.Metadata{
 			Food:   *food,
 			Method: *method,
@@ -43,7 +47,7 @@ func main() {
 			log.Panic(err)
 		}
 	} else {
-		sess, err = session.Open(log, *resume)
+		sess, err = session.Open(log, *file)
 		if err != nil {
 			log.Panic(err)
 		}
@@ -63,22 +67,11 @@ func main() {
 	log.Info("Device initialized")
 
 	log.Info("Starting device")
-	errChan := make(chan error)
-	go dev.Start(ctx, errChan)
+	go dev.Start(ctx)
 
-	if *showui {
-		uiinst, err := ui.New(log, sess, dev)
-		if err != nil {
-			log.Panic(err)
-		}
-		log.SetOutput(uiinst.LogView)
-		sess.AddListener(uiinst.Listener())
-		log.Info("UI starting")
-
-		uiinst.Start(ctx, errChan)
-	} else {
-		for {
-			time.Sleep(time.Second)
-		}
+	api := server.New(sess, dev, log)
+	err = http.ListenAndServe(*host, api.Mux)
+	if err != nil {
+		log.Panic(err)
 	}
 }

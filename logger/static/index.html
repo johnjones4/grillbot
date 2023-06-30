@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>GrillBot</title>
+    <link rel="stylesheet" type="text/css" href="bootstrap.min.css">
+    <link rel="stylesheet" type="text/css" href="style.css">
+  </head>
+  <body>
+    <div class="container-fluid">
+      <div class="row">
+        <img class="col-sm-8" src="/api/chart.png" id="chart" />
+        <div class="col">
+          <div class="temperatures" id="temperatures">
+          </div>
+          <div class="card">
+            <div class="card-body">
+              <form id="form">
+                <div class="form-group">
+                  <label for="food">Food</label>
+                  <input class="form-control" id="food" name="food" type="text" />
+                </div>
+                <div class="form-group">
+                  <label for="method">Method</label>
+                  <input class="form-control" id="method" name="method" type="text" />
+                </div>
+                <div class="form-group">
+                  <label for="calibration0">Calbiration 1</label>
+                  <input class="form-control" id="calibration0" name="calibration0" type="number" />
+                </div>
+                <div class="form-group">
+                  <label for="calibration1">Calbiration 2</label>
+                  <input class="form-control" id="calibration1" name="calibration1" type="number" />
+                </div>
+                <div class="pt-3">
+                  <button type="submit" class="btn btn-primary">Save</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <script src="script.js"></script>
+  </body>
+</html>

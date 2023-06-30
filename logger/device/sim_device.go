@@ -38,11 +38,12 @@ func NewSim(log *logrus.Logger, sess core.Session) core.Device {
 	}
 }
 
-func (s *simDevice) Start(ctx context.Context, erchan chan error) {
-	s.baseDevice.start(ctx, erchan, func() error { return nil }, s.nextMessage)
+func (s *simDevice) Start(ctx context.Context) {
+	s.baseDevice.start(ctx, func() error { return nil }, s.nextMessage)
 }
 
 func (d *simDevice) nextMessage() ([]byte, error) {
-	elapsed := time.Now().Sub(d.start)
+	time.Sleep(time.Second)
+	elapsed := time.Since(d.start)
 	return d.data[int(elapsed)%len(d.data)], nil
 }
