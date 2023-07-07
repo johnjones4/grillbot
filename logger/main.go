@@ -16,7 +16,7 @@ import (
 func main() {
 	method := flag.String("method", "smoked", "Method of cooking")
 	food := flag.String("food", "", "Food being prepared")
-	changeThreshold := flag.Float64("change-threshold", 0.02, "Percent change threshold")
+	changeThreshold := flag.Float64("change-threshold", 0.05, "Percent change threshold")
 	timeThreshold := flag.Duration("time-threshold", time.Second*30, "Time threshold")
 	simulated := flag.Bool("simulated", false, "use simulated data")
 	file := flag.String("file", "", "Resume a previous cook")

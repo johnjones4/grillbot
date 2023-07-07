@@ -3,8 +3,6 @@ package server
 import (
 	"main/core"
 	"net/http"
-	"strconv"
-	"time"
 
 	"github.com/gorilla/websocket"
 )
@@ -19,35 +17,6 @@ func (api *API) stream(w http.ResponseWriter, r *http.Request) {
 	}
 
 	defer c.Close()
-
-	sinceStr := r.URL.Query().Get("since")
-	var since time.Time
-	if sinceStr != "" {
-		sinceInt, err := strconv.ParseInt(sinceStr, 10, 64)
-		if err != nil {
-			sendError(api.log, w, http.StatusBadRequest, err)
-			return
-		}
-		since = time.UnixMilli(sinceInt)
-	}
-
-	readings, err := api.session.GetReadings()
-	if err != nil {
-		sendError(api.log, w, http.StatusInternalServerError, err)
-		return
-	}
-
-	for _, reading := range readings {
-		if reading.Received.After(since) {
-			err = c.WriteJSON(reading)
-			if err != nil {
-				api.log.Error(err)
-				return
-			}
-		}
-	}
-
-	readings = nil
 
 	updates := make(chan core.Reading, 1024)
 
