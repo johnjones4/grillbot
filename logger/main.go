@@ -14,15 +14,15 @@ import (
 )
 
 func main() {
-	method := flag.String("method", "smoked", "Method of cooking")
-	food := flag.String("food", "", "Food being prepared")
-	changeThreshold := flag.Float64("change-threshold", 0.05, "Percent change threshold")
-	timeThreshold := flag.Duration("time-threshold", time.Second*30, "Time threshold")
-	simulated := flag.Bool("simulated", false, "use simulated data")
-	file := flag.String("file", "", "Resume a previous cook")
-	serial := flag.String("serial", "", "Serial device to use")
+	method := flag.String("method", "smoked", "Method of cooking (ie smoking)")
+	food := flag.String("food", "", "Food being prepared (ie brisket)")
+	changeThreshold := flag.Float64("change-threshold", 0.05, "Percent change threshold that should register before logging a new reading")
+	timeThreshold := flag.Duration("time-threshold", time.Second*30, "Time threshold that should pass before logging a new reading")
+	simulated := flag.Bool("simulated", false, "Use simulated data")
+	file := flag.String("file", "", "Resume a previous cook by passing in a cook file")
+	serial := flag.String("serial", "", "Serial device to use (ie /dev/ttyUSB0)")
 	debug := flag.Bool("debug", false, "Run with debug logging")
-	host := flag.String("host", ":8080", "Hostname to listen on")
+	host := flag.String("host", ":8080", "Hostname to listen on for the web interface")
 
 	flag.Parse()
 

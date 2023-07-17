@@ -294,10 +294,6 @@ typedef union doublesbytes {
   char bytes[THERMOMETERS * BYTES_IN_DOUBLE];
 } doublebytes;
 
-void setup() {
-  Serial.begin(9600);
-}
-
 double takeReading(int pin)
 {
   double total = 0;
@@ -317,6 +313,10 @@ double calculateTemp(double adc)
   double tc = t - 273.15;
   double tf = tc * 9 / 5 + 32;
   return tf;
+}
+
+void setup() {
+  Serial.begin(9600);
 }
 
 void loop() {

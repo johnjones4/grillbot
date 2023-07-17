@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"main/core"
 	"os"
-	"path"
 	"sync"
 	"time"
 
@@ -29,12 +28,7 @@ type session struct {
 }
 
 func New(log *logrus.Logger, md core.Metadata) (core.Session, error) {
-	homedir, err := os.UserHomeDir()
-	if err != nil {
-		return nil, err
-	}
-
-	filename, err := filenamify.Filenamify(fmt.Sprintf("Cook %s.sql", md.Start.Format("Jan _2 2006")), filenamify.Options{})
+	filename, err := filenamify.Filenamify(fmt.Sprintf("Cook %s.sqlite", md.Start.Format("Jan _2 2006")), filenamify.Options{})
 	if err != nil {
 		return nil, err
 	}
@@ -42,7 +36,7 @@ func New(log *logrus.Logger, md core.Metadata) (core.Session, error) {
 	sess := &session{
 		listeners: make([]core.Listener, 0),
 		log:       log,
-		filepath:  path.Join(homedir, filename),
+		filepath:  filename,
 	}
 	err = sess.SetMetadata(md)
 	if err != nil {
