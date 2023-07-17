@@ -10,7 +10,7 @@ It's built using PlatformIO and designed to work on an ESP32 platform such as `e
 
 ## Logger (Desktop Software)
 
-The logger reads the serial port connected to the bot and displays and logs the temperatue value coming from the bot. It has a few different configuations that can be passed in via command line flags. It is a Go project and also has a minimal web interface written in vanilla HTML/CSS/JS.
+The logger reads the serial port connected to the bot and displays and logs the temperatue value coming from the bot. All data is stored using Sqlite. There are a few different configuations that can be passed in via command line flags. It is a Go project and also has a minimal web interface written in vanilla HTML/CSS/JS. The web UI exists to monitor temperature and control some basic settings.
 
 ### Command Line Flags:
 
