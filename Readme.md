@@ -1,6 +1,6 @@
 # Grillbot
 
-A device for monitoring and logging thermistor readings from a grill or smoker. For more background on this, watch the video or read the blog post.
+A device for monitoring and logging thermistor readings from a grill or smoker. For more background on this, watch the [video](https://www.youtube.com/watch?v=9kDx2IjlLYs) or read the [blog post](https://johnjonesfour.com/2022/02/06/darkroom-timer).
 
 ## Bot (Microcontroller Device)
 
